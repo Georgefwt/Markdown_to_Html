@@ -12,7 +12,6 @@ fwriter::~fwriter()
 
 void fwriter::name_output(char *new_name, const char *old_name, const char *format) {
 	int dot, len = (int)strlen(old_name);
-
 	strcpy(new_name, old_name);
 	for (dot = len-1; new_name[dot] != '.'; dot--) {}
 	new_name[dot] = '\0';
