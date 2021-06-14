@@ -2,3 +2,4 @@
 core/*.o
 core/*.md
 core/*.html
+core/include/*.gch

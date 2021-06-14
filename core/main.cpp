@@ -26,7 +26,7 @@ void get_input(char *file_dest) {
 int main(){
 	FILE *in_fp, *out_fp;
 	char input[100], output[100];
-	int code_color_scheme;
+	//int code_color_scheme;
 	// get the file address of input file
 	get_input(input);
 	//get_color_scheme(&code_color_scheme);
@@ -44,6 +44,4 @@ int main(){
 
 	myfio.close_files(&in_fp, &out_fp);
 	return 0;
-
-    return 0;
 }
