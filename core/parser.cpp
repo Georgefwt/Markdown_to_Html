@@ -1,9 +1,10 @@
 #include <iostream>
 #include "include/parser.h"
 #include "include/fwriter.h"
+#include <string>
 
+using std::string;
 #define CSS_PATH "css/style.css"
-#define MAX 1000
 
 parser::parser()
 {
@@ -29,19 +30,18 @@ int parser::onUrl(FILE *out_fp, FILE *in_fp) {
 	// if what it deals with is not a url and onUrl gets a '\n'
 	// it will return 2 or 4
 
-	int i = 0;
-	char ch, name[MAX], url[MAX];
-
+	char ch;
+    string name;
+    string url;
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == ']' || ch == '\n' || i > 999) {
+		if (ch == ']' || ch == '\n') {
 			break;
 		}
-		name[i++] = ch;
+        name.push_back(ch);
 	}
-	name[i] = '\0';
 
 	if (ch != ']') {
-		fprintf(out_fp, "[%s%c", name, ch);
+		fprintf(out_fp, "[%s%c", name.c_str(), ch);
 		return 1;
 	}
 
@@ -49,36 +49,34 @@ int parser::onUrl(FILE *out_fp, FILE *in_fp) {
 
 	if (ch != '(') {
 		if (ch == '\n') {
-			fprintf(out_fp, "[%s]", name);
+			fprintf(out_fp, "[%s]", name.c_str());
 			return 2;
 		}
 		else {
-			fprintf(out_fp, "[%s]%c", name, ch);
+			fprintf(out_fp, "[%s]%c", name.c_str(), ch);
 			return 3;
 		}
 	}
 
-	i = 0;
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == ')' || ch == '\n' || i > 999) {
+		if (ch == ')' || ch == '\n') {
 			break;
 		}
-		url[i++] = ch;
+        url.push_back(ch);
 	}
-	url[i] = '\0';
 
 	if (ch != ')') {
 		if (ch == '\n') {
-			fprintf(out_fp, "[%s](%s", name, url);
+			fprintf(out_fp, "[%s](%s", name.c_str(), url.c_str());
 			return 4;
 		}
 		else {
-			fprintf(out_fp, "[%s](%s%c", name, url, ch);
+			fprintf(out_fp, "[%s](%s%c", name.c_str(), url.c_str(), ch);
 			return 5;
 		}
 	}
 
-	fprintf(out_fp, "<a href=\"%s\">%s</a>", url, name);
+	fprintf(out_fp, "<a href=\"%s\">%s</a>", url.c_str(), name.c_str());
 	return 0;
 }
 
@@ -147,56 +145,53 @@ int parser::onHr(FILE *out_fp, FILE *in_fp) {
 	return 0;
 }
 
-int parser::onImg(FILE *out_fp, FILE *in_fp) {
-	int i = 0;
-	char ch, name[MAX], url[MAX];
-
+int parser::onImg(FILE *out_fp, FILE *in_fp) {//start with !
+	char ch;
+    string name;
+    string url;
 	ch = fgetc(in_fp);
 	if (ch != '[') {
-		fprintf(out_fp, "!%c", ch);
+		fprintf(out_fp, "!%c", ch); //not a image
 		return 1;
 	}
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == ']' || ch == '\n' || i > 999) {
+		if (ch == ']' || ch == '\n') {
 			break;
 		}
-		name[i++] = ch;
+        name.push_back(ch);
 	}
 
-	name[i] = '\0';
 	if (ch == '\n' || ch == EOF) {
-		fprintf(out_fp, "![%s%c", name, ch);
+		fprintf(out_fp, "![%s%c", name.c_str(), ch);
 		return 2;
 	}
 	
 	while ((ch = fgetc(in_fp)) == ' ') {}
 	if (ch != '(') {
-		fprintf(out_fp, "![%s]%c", name, ch);
+		fprintf(out_fp, "![%s]%c", name.c_str(), ch);
 		return 3;
 	}
 
-	i = 0;
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == ')' || ch == '\n' || i > 999) {
+		if (ch == ')' || ch == '\n') {
 			break;
 		}
-		url[i++] = ch;
+        url.push_back(ch);
 	}
-	url[i] = '\0';
 
 	if (ch != ')') {
-		fprintf(out_fp, "![%s](%s%c", name, url, ch);
+		fprintf(out_fp, "![%s](%s%c", name.c_str(), url.c_str(), ch);
 		return 4;
 	}
 
-	fprintf(out_fp, "<img src=\"%s\" alt=\"%s\">", url, name);
+	fprintf(out_fp, "<img src=\"%s\" alt=\"%s\">", url.c_str(), name.c_str());
 	return 0;
 }
 
 int parser::onBold(FILE *out_fp, FILE *in_fp) {
 	int i = 0;
-	char ch, content[MAX];
-
+	char ch;
+    string content;
 	while ((ch = fgetc(in_fp)) == ' ') {}
 	if (ch == '*') {
 		ch = fgetc(in_fp);
@@ -213,27 +208,29 @@ int parser::onBold(FILE *out_fp, FILE *in_fp) {
 		fputc(ch, out_fp);
 		return 3;
 	}
-	content[i++] = ch;
+    content.push_back(ch);
+	//content[i++] = ch;
 	while ((ch = fgetc(in_fp)) != EOF) {
 		if (ch == '*' || ch == '\n' || i > 999) {
 			break;
 		}
-		content[i++] = ch;
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
-	content[i] = '\0';
+	//content[i] = '\0';
 
 	if (ch != '*') {
-		fprintf(out_fp, "%s%c", content, ch);
+		fprintf(out_fp, "%s%c", content.c_str(), ch);
 		return 4;
 	}
 	
 	ch = fgetc(in_fp);
 	if (ch != '*') {
-		fprintf(out_fp, "<i>*%s</i>%c", content, ch);
+		fprintf(out_fp, "<i>*%s</i>%c", content.c_str(), ch);
 		return 5;
 	}
 
-	fprintf(out_fp, "<strong>%s</strong>", content);
+	fprintf(out_fp, "<strong>%s</strong>", content.c_str());
 	return 0;
 }
 
@@ -245,8 +242,8 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 	// it will return -2
 
 	int i = 0, state, isSpace;
-	char ch, content[MAX];
-	
+	char ch;
+	string content;
 	ch = fgetc(in_fp);
 	if (ch == '*') {
 		state = onBold(out_fp, in_fp);
@@ -262,26 +259,29 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 	}
 	else {
 		isSpace = 0;
-		content[i++] = ch;
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
 	if (isSpace) {
 		while ((ch = fgetc(in_fp)) == ' ') {}
-		content[i++] = ch;
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
 	while ((ch = fgetc(in_fp)) != EOF) {
 		if (ch == '*' || ch == '\n' || i> 999) {
 			break;
 		}
-		content[i++] = ch;
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
-	content[i] = '\0';
+	//content[i] = '\0';
 
 	if (ch != '*') {
-		fprintf(out_fp, "*%s%c", content, ch);
+		fprintf(out_fp, "*%s%c", content.c_str(), ch);
 		return 10;
 	}
 
-	fprintf(out_fp, "<i>%s</i>", content);
+	fprintf(out_fp, "<i>%s</i>", content.c_str());
 	return -2;
 }
 
@@ -331,11 +331,12 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	// and if what it deal with is a list
 	// it will return -3
 
-	int state, i = 0;
-	char ch, content[MAX];
+	int state;
+	char ch;
+    string content;
 
 	ch = fgetc(in_fp);
-	if (ch == ' ') {
+	if (ch == ' ') { //situration:|* |,means is a list
 		state = onList(out_fp, in_fp, sign);
 		if (state == 0) {
 			return -3;
@@ -344,7 +345,7 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 			return state;
 		}
 	}
-	else if (ch == '*') {
+	else if (ch == '*') {//situration:|**|,means bold
 		fputc('\n', out_fp);
 		state = onBold(out_fp, in_fp);
 		if (state == 0) {
@@ -357,27 +358,27 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	else if (ch == '\n') {
 		fprintf(out_fp, "<p>*</p>\n");
 	}
-	content[i++] = ch;
+    content.push_back(ch);
 	
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == '*' || ch == '\n' || i> 999) {
+		if (ch == '*' || ch == '\n') {
 			break;
 		}
-		content[i++] = ch;
+        content.push_back(ch);
 	}
-	content[i] = '\0';
 
 	if (ch != '*') {
-		if (ch == '\n') {
-			fprintf(out_fp, "<p>*%s</p>\n", content);
-		}
-		else {
-			fprintf(out_fp, "<p>*%s%c", content, ch);
-		}
+        fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
+		// if (ch == '\n') {
+		// 	fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
+		// }
+		// else {
+		// 	fprintf(out_fp, "<p>*%s%c", content.c_str(), ch);//normal * and not finish
+        // }
 		return 10;
 	}
 
-	fprintf(out_fp, "<p><i>%s</i>", content);
+	fprintf(out_fp, "<p><i>%s</i>", content.c_str()); //italic
 	return -2;
 
 }
@@ -389,20 +390,22 @@ void onSpecialChar(FILE *out_fp, const char ch) {
 }
 
 int parser::onCode(FILE *out_fp, FILE *in_fp) {
-	int i = 0, j, isSpace, isNewLine;
-	char ch, content[MAX];
-
+	int j, isSpace, isNewLine;
+	char ch;
+    string content;
 	ch = fgetc(in_fp);
 	if (ch == ' ') {
 		isSpace = 1;
 	}
 	else {
 		isSpace = 0;
-		content[i++] = ch;
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
 	if (isSpace) {
-		while ((ch = fgetc(in_fp)) == ' ') {}
-		content[i++] = ch;
+		while ((ch = fgetc(in_fp)) == ' ') {}//jump the space
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
 
 	while ((ch = fgetc(in_fp)) != EOF) {
@@ -414,20 +417,22 @@ int parser::onCode(FILE *out_fp, FILE *in_fp) {
 		}
 		else {
 			isNewLine = 0;
-			if (ch == '`' || i > 999) {
+			if (ch == '`') {
 				break;
 			}
 		}
-		content[i++] = ch;
+        content.push_back(ch);
+		//content[i++] = ch;
 	}
-	content[i] = '\0';
-
+	//content[i] = '\0';
+    //????
 	if (ch != '`') {
-		fprintf(out_fp, "`%s%c", content, ch);
+		fprintf(out_fp, "`%s%c", content.c_str(), ch);
 		return 1;
 	}
 	fprintf(out_fp, "<code>");
-	for (j=0; j<i; j++) {
+    //replace(content.begin(),content.end(),'&','&');
+	for (j=0; j<content.length(); j++) {
 		if (content[j] == '&' || content[j] == '<') {
 			onSpecialChar(out_fp, content[j]);
 		}
@@ -602,7 +607,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				fprintf(out_fp, "<p>%c", ch);
 			}
 			onIorB(out_fp, in_fp);
-			// if ch is a asterish and not in a new line,
+			// if ch is a asterisk and not in a new line,
 			// it can be italic style
 			// or it can be bold style
 		}

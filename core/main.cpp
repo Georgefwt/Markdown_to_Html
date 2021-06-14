@@ -26,8 +26,11 @@ void get_input(char *file_dest) {
 int main(){
 	FILE *in_fp, *out_fp;
 	char input[100], output[100];
+    //*****TODO******
 	//int code_color_scheme;
 	// get the file address of input file
+    //add different color scheme
+    //**************
 	get_input(input);
 	//get_color_scheme(&code_color_scheme);
 	// get the name of the output file
