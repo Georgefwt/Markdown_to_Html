@@ -1,0 +1,4 @@
+.vscode
+core/*.o
+core/*.md
+core/*.html
