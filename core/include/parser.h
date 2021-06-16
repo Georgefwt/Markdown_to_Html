@@ -20,7 +20,7 @@ public:
     int onAster(FILE *out_fp, FILE *in_fp, const int sign);
     int onCode(FILE *out_fp, FILE *in_fp);
     int onQuote(FILE *out_fp, const int sign);
-    int onBlock(FILE *out_fp, FILE *in_fp,const int sign, const int code_color_scheme);
+    int onBlock(FILE *out_fp, FILE *in_fp,const int sign);
     void mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw);
 };
 
