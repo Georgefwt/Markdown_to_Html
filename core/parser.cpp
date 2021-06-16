@@ -2,7 +2,7 @@
 #include "include/parser.h"
 #include "include/fwriter.h"
 #include <string>
-
+#define MAX 1000
 using std::string;
 #define CSS_PATH "css/style.css"
 
@@ -18,7 +18,6 @@ parser::parser()
 
 parser::~parser()
 {
-    
 }
 
 int parser::onUrl(FILE *out_fp, FILE *in_fp) {
@@ -390,48 +389,65 @@ void onSpecialChar(FILE *out_fp, const char ch) {
 }
 
 int parser::onCode(FILE *out_fp, FILE *in_fp) {
-	int j, isSpace, isNewLine;
+	int j, isSpace=0, isNewLine=0,isCodeBlock=0;
 	char ch;
     string content;
 	ch = fgetc(in_fp);
 	if (ch == ' ') {
 		isSpace = 1;
 	}
+    if (ch == '`'){
+        if(ch= fgetc(in_fp) == '`'){
+            isCodeBlock=1;
+            //****对于代码格式的支持，先留一手
+            ch=fgetc(in_fp);//把\n吃掉
+            if(ch='\r') fgetc(in_fp);//CRLF
+            //****
+        }
+        else{
+            content.push_back(ch);
+        }
+    }
 	else {
 		isSpace = 0;
         content.push_back(ch);
-		//content[i++] = ch;
 	}
 	if (isSpace) {
 		while ((ch = fgetc(in_fp)) == ' ') {}//jump the space
         content.push_back(ch);
-		//content[i++] = ch;
 	}
 
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (isNewLine && ch == '\n') {
-			break;
-		}
-		else if (!isNewLine && ch == '\n') {
-			isNewLine = 1;
-		}
-		else {
-			isNewLine = 0;
-			if (ch == '`') {
-				break;
-			}
-		}
-        content.push_back(ch);
-		//content[i++] = ch;
+        if (isCodeBlock!=1){
+            if (isNewLine && ch == '\n') {
+                break;
+            }
+            else if (!isNewLine && ch == '\n') {
+                isNewLine = 1;
+            }
+            else {
+                isNewLine = 0;
+                if (ch == '`') {
+                    break;
+                }
+            }
+            content.push_back(ch);
+        }
+        else{
+            if (ch == '`'){
+                fgetc(in_fp);
+                fgetc(in_fp);
+                break;
+            }
+            content.push_back(ch);
+        }
 	}
-	//content[i] = '\0';
-    //????
 	if (ch != '`') {
 		fprintf(out_fp, "`%s%c", content.c_str(), ch);
 		return 1;
 	}
-	fprintf(out_fp, "<code>");
-    //replace(content.begin(),content.end(),'&','&');
+    if(isCodeBlock==1) fprintf(out_fp, "<pre>\n<code>\n");
+	else fprintf(out_fp, "<code>");
 	for (j=0; j<content.length(); j++) {
 		if (content[j] == '&' || content[j] == '<') {
 			onSpecialChar(out_fp, content[j]);
@@ -441,7 +457,12 @@ int parser::onCode(FILE *out_fp, FILE *in_fp) {
 		}
 	}
 
-	fprintf(out_fp, "</code>");
+    if(isCodeBlock==1) {
+        fprintf(out_fp,"</code>\n</pre>\n");
+        fgetc(in_fp);
+        fgetc(in_fp);
+    }
+	else fprintf(out_fp, "</code>");
 	return 0;
 }
 
@@ -456,67 +477,41 @@ int parser::onQuote(FILE *out_fp, const int sign) {
 	return 0;
 }
 
-// int parser::onBlock(FILE *out_fp, FILE *in_fp,const int sign, const int code_color_scheme) {
-// 	// this function deals with code block
-// 	// it works the same as onList
-// 	int i, j;
-// 	char ch, content[MAX];
-
-// 	if (code_color_scheme) {
-// 		if (sign == 1) {
-// 			fprintf(out_fp, "\n<div class=\"code\">\n");
-// 		}
-// 		if (sign == 1 || sign == 2) {
-// 			i = 0;
-// 			while ((ch = fgetc(in_fp)) != EOF) {
-// 				if (ch == '\n' || i > 999) {
-// 					break;
-// 				}
-// 				content[i++] = ch;
-// 			}
-// 			if (ch == '\n' && i < 1000) {
-// 				content[i++] = '\n';
-// 			}
-// 			content[i] = '\0';
-
-// 			code_token(out_fp, content, WRITE_AS_HTML, code_color_scheme);
-// 		}
-// 		if (sign == 3) {
-// 			fprintf(out_fp, "\n</div>\n");
-// 		}
-// 	}
-// 	else {
-// 		if (sign == 1) {
-// 			fprintf(out_fp, "<pre>\n<code>\n");
-// 		}
+int parser::onBlock(FILE *out_fp, FILE *in_fp,const int sign) {
+	// this function deals with code block
+	// it works the same as onList
+	int j;
+	char ch;
+    string content;
 	
-// 		if (sign == 1 || sign == 2) {
-// 			i = 0;
-// 			while ((ch = fgetc(in_fp)) != EOF) {
-// 				if (ch == '\n' || i > 999) {
-// 					break;
-// 				}
-// 				content[i++] = ch;
-// 			}
-// 			content[i] = '\0';
+    if (sign == 1) {
+        fprintf(out_fp, "<pre>\n<code>\n");
+    }
 
-// 			for (j=0; j<i; j++) {
-// 				if (content[j] == '&' || content[j] == '<') {
-// 					onSpecialChar(out_fp, content[j]);
-// 				}
-// 				else {
-// 					fputc(content[j], out_fp);
-// 				}
-// 			}
-// 			fputc('\n', out_fp);
-// 		}
+    if (sign == 1 || sign == 2) {
+        while ((ch = fgetc(in_fp)) != EOF) {
+            if (ch == '\n') {
+                break;
+            }
+            content.push_back(ch);
+        }
 
-// 		if (sign == 3) {
-// 			fprintf(out_fp, "</code>\n</pre>\n");
-// 		}
-// 	}
-// 	return 0;
-// }
+        for (j=0; j<content.length(); j++) {
+            if (content[j] == '&' || content[j] == '<') {
+                onSpecialChar(out_fp, content[j]);
+            }
+            else {
+                fputc(content[j], out_fp);
+            }
+        }
+        fputc('\n', out_fp);
+    }
+
+    if (sign == 3) {
+        fprintf(out_fp, "</code>\n</pre>\n");
+    }
+	return 0;
+}
 
 void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     myfw.add_head(out_fp, CSS_PATH);
@@ -526,10 +521,10 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			onList(out_fp, in_fp, 3);
 			isList = 0;
 		}
-		// if (isNewLine && ch != '\t' && isBlock) {
-		// 	onBlock(out_fp, in_fp, 3, code_color_scheme);
-		// 	isBlock = 0;
-		// }
+		if (isNewLine && ch != '\t' && isBlock) {
+			onBlock(out_fp, in_fp, 3);
+			isBlock = 0;
+		}
 		if (isNewLine && ch != '>' && isQuote) {
 			onQuote(out_fp, 2);
 			isQuote = 0;
@@ -570,12 +565,12 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				// or just common text
 			}
 			else if (ch == '\t') {
-				// if (isBlock == 0) {
-				// 	onBlock(out_fp, in_fp, 1, code_color_scheme);
-				// }
-				// else {
-				// 	onBlock(out_fp, in_fp, 2, code_color_scheme);
-				// }
+				if (isBlock == 0) {
+					onBlock(out_fp, in_fp, 1);
+				}
+				else {
+					onBlock(out_fp, in_fp, 2);
+				}
 				ch = '\n';
 				isBlock = 1;
 				isNewLine = 1;
