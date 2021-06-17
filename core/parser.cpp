@@ -14,6 +14,7 @@ parser::parser()
     isCode = 0;
     isList = 0;
     isBlock = 0;
+	isOrderList = 0;
 }
 
 parser::~parser()
@@ -214,9 +215,7 @@ int parser::onBold(FILE *out_fp, FILE *in_fp) {
 			break;
 		}
         content.push_back(ch);
-		//content[i++] = ch;
 	}
-	//content[i] = '\0';
 
 	if (ch != '*') {
 		fprintf(out_fp, "%s%c", content.c_str(), ch);
@@ -259,21 +258,17 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 	else {
 		isSpace = 0;
         content.push_back(ch);
-		//content[i++] = ch;
 	}
 	if (isSpace) {
 		while ((ch = fgetc(in_fp)) == ' ') {}
         content.push_back(ch);
-		//content[i++] = ch;
 	}
 	while ((ch = fgetc(in_fp)) != EOF) {
 		if (ch == '*' || ch == '\n' || i> 999) {
 			break;
 		}
         content.push_back(ch);
-		//content[i++] = ch;
 	}
-	//content[i] = '\0';
 
 	if (ch != '*') {
 		fprintf(out_fp, "*%s%c", content.c_str(), ch);
@@ -287,18 +282,13 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 int parser::onList(FILE *out_fp, FILE *in_fp,const int sign) {
 	int onUrlstate;
 	char ch;
-
 	if (sign == 1) {
 		fprintf(out_fp, "<ul>\n");
 	}
-	
 	if (sign == 1 || sign == 2) {
 		fprintf(out_fp, "<li>");
-		//while ((ch = fgetc(in_fp)) == ' ') {}
-
 		ch = fgetc(in_fp);
 		while (ch != '\n' && ch != EOF) {
-		
 			if (ch == '[') {
 				onUrlstate = onUrl(out_fp, in_fp);
 				if (onUrlstate == 2 || onUrlstate == 4) {
@@ -318,8 +308,76 @@ int parser::onList(FILE *out_fp, FILE *in_fp,const int sign) {
 	if (sign == 3) {
 		fprintf(out_fp, "</ul>\n");
 	}
-
 	return 0;
+}
+
+int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
+	printf("onordlist!!!\n");
+	printf("sign:%d\n",sign);
+	int onUrlstate;
+	char ch;
+	if (sign == 1) {
+		fprintf(out_fp, "<ol>\n");
+	}
+	if (sign == 1 || sign == 2) {
+		fprintf(out_fp, "<li>");
+		//while ((ch = fgetc(in_fp)) == ' ') {}
+		ch = fgetc(in_fp);
+		while (ch != '\n' && ch != EOF) {
+			if (ch == '[') {
+				onUrlstate = onUrl(out_fp, in_fp);
+				if (onUrlstate == 2 || onUrlstate == 4) {
+					// there is a '\n'
+					break;
+				}
+			}
+			else {
+				fprintf(out_fp, "%c", ch);
+			}
+			ch = fgetc(in_fp);
+		}
+		fprintf(out_fp, "</li>\n");
+	}
+	if (sign == 3) {
+		fprintf(out_fp, "</ol>\n");
+	}
+	return 0;
+}
+
+int parser::onNumber(FILE *out_fp, FILE *in_fp, const int sign){
+	// if what it deal with is normal number
+	// it will return -1
+	// and if what it deal with is a ordlist
+	// it will return -3
+	printf("onNumber!!!\n");
+	int state;
+	char ch;
+    string content;
+	char tmpch=fgetc(in_fp);
+	if (tmpch == '.'){
+		char tmpch2=fgetc(in_fp);
+		if (tmpch2==' '){
+			isOrderList = 1;
+			state = onOrdList(out_fp,in_fp,sign);
+			if (state == 0)
+				return -3;
+			else {
+				return state;
+			}
+		}
+		else{
+			fprintf(out_fp, "%c",ch);
+			fprintf(out_fp, "%c",tmpch);
+			fprintf(out_fp, "%c",tmpch2);
+			isOrderList = 0;
+		}
+	}
+	else{
+		fprintf(out_fp, "%c",ch);
+		fprintf(out_fp, "%c",tmpch);
+		isOrderList = 0;
+	}
+	return -1;
 }
 
 int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
@@ -368,12 +426,6 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 
 	if (ch != '*') {
         fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
-		// if (ch == '\n') {
-		// 	fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
-		// }
-		// else {
-		// 	fprintf(out_fp, "<p>*%s%c", content.c_str(), ch);//normal * and not finish
-        // }
 		return 10;
 	}
 
@@ -513,6 +565,11 @@ int parser::onBlock(FILE *out_fp, FILE *in_fp,const int sign) {
 	return 0;
 }
 
+bool is_number(char ch){
+	if ('0'<= ch && ch <= '9') return true;
+	return false;
+}
+
 void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     myfw.add_head(out_fp, CSS_PATH);
     //handle List Quote Header
@@ -520,6 +577,10 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 		if (isNewLine && ch != '*' && isList) {
 			onList(out_fp, in_fp, 3);
 			isList = 0;
+		}
+		if (isNewLine && !is_number(ch) && isOrderList) {
+			onOrdList(out_fp, in_fp, 3);
+			isOrderList = 0;
 		}
 		if (isNewLine && ch != '\t' && isBlock) {
 			onBlock(out_fp, in_fp, 3);
@@ -531,7 +592,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 		}
 
 		if (isNewLine &&
-			(ch == '>' ||  ch == '#' || ch == '-' || ch == '*' || ch == '\t')) {
+			(ch == '>' ||  ch == '#' || ch == '-' || ch == '*' || ch == '\t'|| ch=='\n'|| is_number(ch))) {
 			if (ch == '>') {
 				if (isQuote == 0) {
 					onQuote(out_fp, 1);
@@ -553,16 +614,26 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				else {
 					state = onAster(out_fp, in_fp, 2);
 				}
-
 				if (state == -3) { // if it is a list
 					ch ='\n';
 					isList = 1;
 				}
-				// if ch is a aterisk in a new line,
-				// it can be a list,
-				// or italic style
-				// or bold style
-				// or just common text
+			}
+			else if (is_number(ch)){
+				int state;
+				if (isOrderList == 0) {
+					state = onNumber(out_fp, in_fp, 1);
+				}
+				else {
+					state = onNumber(out_fp, in_fp, 2);
+				}
+				if (state == -3) { // if it is a list
+					ch ='\n';
+					isList = 1;
+				}
+			}
+			else if(ch == '\n'){
+				fprintf(out_fp, "<p></p>\n");
 			}
 			else if (ch == '\t') {
 				if (isBlock == 0) {
@@ -608,7 +679,8 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 		}
         else if (ch != '\n') {
 			if (isNewLine && !isQuote) {
-				fprintf(out_fp, "<p>%c", ch);
+				fprintf(out_fp, "%c", ch);
+				//printf("heeeee!\n");
 			}
 			else {
             	fputc(ch, out_fp);
@@ -620,12 +692,11 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
         }
         else {
 			if (!isHr && !isQuote && !isNewLine) {
-				fprintf(out_fp, "</p>\n");
+				fprintf(out_fp, "\n");
 			}
 			isNewLine = 1;
 			isHr = 0;
         }
 	}
 	myfw.add_foot(out_fp);
-
 }

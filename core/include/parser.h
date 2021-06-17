@@ -7,7 +7,7 @@ class parser
     
 public:
     char ch;
-	int isNewLine, isQuote, isCode, isList, isBlock,isHr;
+	int isNewLine, isQuote, isCode, isList, isBlock,isHr,isOrderList;
     parser();
     ~parser();
     int onUrl(FILE *out_fp, FILE *in_fp);
@@ -17,6 +17,8 @@ public:
     int onBold(FILE *out_fp, FILE *in_fp);
     int onIorB(FILE *out_fp, FILE *in_fp);
     int onList(FILE *out_fp, FILE *in_fp,const int sign);
+    int onOrdList(FILE *out_fp, FILE *in_fp,const int sign);
+    int onNumber(FILE *out_fp, FILE *in_fp, const int sign);
     int onAster(FILE *out_fp, FILE *in_fp, const int sign);
     int onCode(FILE *out_fp, FILE *in_fp);
     int onQuote(FILE *out_fp, const int sign);
