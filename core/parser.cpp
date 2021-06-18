@@ -625,9 +625,9 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     //handle List Quote Header
     while ((ch = fgetc(in_fp)) != EOF) {
 		printf("ch:%c isList:%d isNewLine:%d \n",ch,isList,isNewLine);
-		if (isNewLine && ch != '*' &&ch !='-' && isList) {
+		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' ' && isList) {
 			onList(out_fp, in_fp, 3);
-			isList = 0;
+			isList --;
 		}
 		if (isNewLine && !is_number(ch) && isOrderList) {
 			onOrdList(out_fp, in_fp, 3);
@@ -695,7 +695,38 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				}
 			}
 			else if (ch == ' '){
-				
+				printf("spaceeeee isList:%d\n",isList);
+				if (isList){
+					int count=1;
+					while (ch=getc(in_fp)){
+						if (ch == ' ') count++;
+						else if (ch == '*') {
+							if (count>=2){
+								isList=0;
+								printf("oooooooohhhhhhh\n");
+								int state;
+								if (isList == 0) {
+									state = onAster(out_fp, in_fp, 1);
+								}
+								else {
+									state = onAster(out_fp, in_fp, 2);
+								}
+								if (state == -3) { // if it is a list
+									//ch ='\n';
+									isList = 1;
+								}
+
+							}
+							break;
+						}
+						else{
+							for (int i = 0; i < count; i++) fputc(' ',out_fp);
+							isNewLine=0;
+							goto flag;
+						}
+					}
+
+				}
 			}
 			else if(ch == '\n'){
 				fprintf(out_fp, "<p></p>\n");
@@ -764,6 +795,10 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			isHr = 0;
         }
 		printf("END:ch:%c isList:%d isNewLine:%d \n\n",ch,isList,isNewLine);
+	}
+	if(isList>0){
+		fprintf(out_fp,"</ul>\n");
+		isList--;
 	}
 	myfw.add_foot(out_fp);
 }
