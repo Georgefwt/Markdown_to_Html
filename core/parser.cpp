@@ -15,6 +15,7 @@ parser::parser()
     isList = 0;
     isBlock = 0;
 	isOrderList = 0;
+	listspaces=0;
 }
 
 parser::~parser()
@@ -281,7 +282,7 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 
 int parser::onList(FILE *out_fp, FILE *in_fp,const int sign) {
 	printf("onList sign:%d isNewline:%d isList:%d\n",sign,isNewLine,isList);
-	int onUrlstate;
+	//int onUrlstate;
 	char ch;
 	if (sign == 1) {
 		fprintf(out_fp, "<ul>\n");
@@ -624,10 +625,12 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     myfw.add_head(out_fp, CSS_PATH);
     //handle List Quote Header
     while ((ch = fgetc(in_fp)) != EOF) {
-		printf("ch:%c isList:%d isNewLine:%d \n",ch,isList,isNewLine);
+		printf("ch:%c isList:%d isNewLine:%d listspaces:%d \n",ch,isList,isNewLine,listspaces);
 		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' ' && isList) {
+			printf("on</ul>");
 			onList(out_fp, in_fp, 3);
-			isList --;
+			//for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
+			isList = 0;
 		}
 		if (isNewLine && !is_number(ch) && isOrderList) {
 			onOrdList(out_fp, in_fp, 3);
@@ -670,6 +673,12 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			}
 			else if (ch == '*') {
 				int state;
+				if (listspaces>0){
+					for (int k = 0; k < listspaces/4; k++){
+						fprintf(out_fp,"</ul>\n");
+					}
+					listspaces=0;
+				}
 				if (isList == 0) {
 					state = onAster(out_fp, in_fp, 1);
 				}
@@ -702,6 +711,13 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 						if (ch == ' ') count++;
 						else if (ch == '*') {
 							if (count>=2){
+								if (count>=listspaces+4)listspaces=count;
+								else if(count<=listspaces-4){
+									for (int j = 0; j < (listspaces-count)/4; j++){
+										fprintf(out_fp,"</ul>\n");
+									}
+									listspaces=count;
+								}
 								isList=0;
 								printf("oooooooohhhhhhh\n");
 								int state;
@@ -774,6 +790,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			// it can be italic style
 			// or it can be bold style
 		}
+		else if (ch == '\r') continue;
         else if (ch != '\n') {
 			if (isNewLine && !isQuote) {
 				fprintf(out_fp, "%c", ch);
@@ -796,9 +813,6 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
         }
 		printf("END:ch:%c isList:%d isNewLine:%d \n\n",ch,isList,isNewLine);
 	}
-	if(isList>0){
-		fprintf(out_fp,"</ul>\n");
-		isList--;
-	}
+	
 	myfw.add_foot(out_fp);
 }

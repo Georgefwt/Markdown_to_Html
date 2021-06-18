@@ -7,7 +7,7 @@ class parser
     
 public:
     char ch;
-	int isNewLine, isQuote, isCode, isList, isBlock,isHr,isOrderList;
+	int isNewLine, isQuote, isCode, isList, isBlock,isHr,isOrderList,listspaces;
     parser();
     ~parser();
     int onUrl(FILE *out_fp, FILE *in_fp);
