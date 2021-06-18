@@ -711,14 +711,18 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 						if (ch == ' ') count++;
 						else if (ch == '*') {
 							if (count>=2){
-								if (count>=listspaces+4)listspaces=count;
+								if (count>=listspaces+4){
+									listspaces=count;
+									isList=0;
+								}
 								else if(count<=listspaces-4){
 									for (int j = 0; j < (listspaces-count)/4; j++){
 										fprintf(out_fp,"</ul>\n");
 									}
 									listspaces=count;
+									isList=1;
 								}
-								isList=0;
+								else isList=1;
 								printf("oooooooohhhhhhh\n");
 								int state;
 								if (isList == 0) {
