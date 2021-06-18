@@ -20,6 +20,7 @@ public:
     int onOrdList(FILE *out_fp, FILE *in_fp,const int sign);
     int onNumber(FILE *out_fp, FILE *in_fp, const int sign);
     int onAster(FILE *out_fp, FILE *in_fp, const int sign);
+    int onDash(FILE *out_fp, FILE *in_fp, const int sign);
     int onCode(FILE *out_fp, FILE *in_fp);
     int onQuote(FILE *out_fp, const int sign);
     int onBlock(FILE *out_fp, FILE *in_fp,const int sign);

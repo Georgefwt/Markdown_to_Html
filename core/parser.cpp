@@ -131,7 +131,7 @@ int parser::onHr(FILE *out_fp, FILE *in_fp) {
 		++count;
 		ch = fgetc(in_fp);
 	}
-	if (count >= 3) {
+	if (count >= 2) {
 		fprintf(out_fp, "\n<hr/>\n");
 		isHr = 1;
 	}
@@ -311,9 +311,58 @@ int parser::onList(FILE *out_fp, FILE *in_fp,const int sign) {
 	return 0;
 }
 
+int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
+	// if what it deal with is normal dash
+	// it will return -1
+	// and if what it deal with is a list
+	// it will return -3
+	//printf("onDash!!!\n");
+	int state;
+	char ch;
+    string content;
+
+	ch = fgetc(in_fp);
+	if (ch == ' ') { //situration:|- |,means is a list
+		state = onList(out_fp, in_fp, sign);
+		if (state == 0) {
+			return -3;
+		}
+		else {
+			return state;
+		}
+	}
+	else if (ch == '-') {//situration:|**|,means bold
+		fputc('\n', out_fp);
+		state = onHr(out_fp, in_fp);
+		if (state == 0) {
+			return -1;
+		}
+		else {
+			return state;
+		}
+	}
+	else if (ch == '\n') {
+		fprintf(out_fp, "<p>-</p>\n");
+	}
+    content.push_back(ch);
+	
+	while ((ch = fgetc(in_fp)) != EOF) {
+		if (ch == '-' || ch == '\n') {
+			break;
+		}
+        content.push_back(ch);
+	}
+
+	if (ch != '-') {
+        fprintf(out_fp, "<p>-%s</p>\n", content.c_str());//normal -
+		return 10;
+	}
+	return -2;
+}
+
 int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
-	printf("onordlist!!!\n");
-	printf("sign:%d\n",sign);
+	//printf("onordlist!!!\n");
+	//printf("sign:%d\n",sign);
 	int onUrlstate;
 	char ch;
 	if (sign == 1) {
@@ -349,7 +398,7 @@ int parser::onNumber(FILE *out_fp, FILE *in_fp, const int sign){
 	// it will return -1
 	// and if what it deal with is a ordlist
 	// it will return -3
-	printf("onNumber!!!\n");
+	//printf("onNumber!!!\n");
 	int state;
 	char ch;
     string content;
@@ -387,7 +436,7 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	// it will return -2
 	// and if what it deal with is a list
 	// it will return -3
-
+	printf("omAster sign:%d",sign);
 	int state;
 	char ch;
     string content;
@@ -574,7 +623,8 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     myfw.add_head(out_fp, CSS_PATH);
     //handle List Quote Header
     while ((ch = fgetc(in_fp)) != EOF) {
-		if (isNewLine && ch != '*' && isList) {
+		printf("ch:%c isList:%d isNewLine:%d \n\n",ch,isList,isNewLine);
+		if (isNewLine && ch != '*' &&ch !='-' && isList) {
 			onList(out_fp, in_fp, 3);
 			isList = 0;
 		}
@@ -604,7 +654,17 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				ch = '\n';
 			}
 			else if (ch == '-') {
-				onHr(out_fp, in_fp);
+				int state;
+				if (isList == 0){
+					state=onDash(out_fp,in_fp,1);
+				}
+				else{
+					state=onDash(out_fp,in_fp,2);
+				}
+				if (state == -3){//it is a list
+					ch ='\n';
+					isList = 1;
+				}
 			}
 			else if (ch == '*') {
 				int state;
@@ -629,7 +689,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				}
 				if (state == -3) { // if it is a list
 					ch ='\n';
-					isList = 1;
+					isOrderList = 1;
 				}
 			}
 			else if(ch == '\n'){
@@ -672,6 +732,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			if (isNewLine) {
 				fprintf(out_fp, "<p>%c", ch);
 			}
+			printf("onIorB!\n");
 			onIorB(out_fp, in_fp);
 			// if ch is a asterisk and not in a new line,
 			// it can be italic style
@@ -680,7 +741,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
         else if (ch != '\n') {
 			if (isNewLine && !isQuote) {
 				fprintf(out_fp, "%c", ch);
-				//printf("heeeee!\n");
+				printf("%c", ch);
 			}
 			else {
             	fputc(ch, out_fp);
