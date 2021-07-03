@@ -311,6 +311,7 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 	ch = fgetc(in_fp);
 	if (ch == ' ') { //situration:|- |,means is a list
 		state = onList(out_fp, in_fp, sign);
+		printf("qwerttt state:%d\n",state);
 		if (state == 0) {
 			return -3;
 		}
@@ -333,12 +334,12 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 	}
     content.push_back(ch);
 	
-	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == '-' || ch == '\n') {
-			break;
-		}
-        content.push_back(ch);
-	}
+	// while ((ch = fgetc(in_fp)) != EOF) {
+	// 	if (ch == '-' || ch == '\n') {
+	// 		break;
+	// 	}
+    //     content.push_back(ch);
+	// }
 
 	if (ch != '-') {
         fprintf(out_fp, "<p>-%s</p>\n", content.c_str());//normal -
@@ -433,7 +434,7 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
     string content;
 
 	ch = fgetc(in_fp);
-	if (ch == ' ') { //situration:|* |,means is a list
+	if (ch == ' ') { //situration:|* |,means is a list   or |- |
 		state = onList(out_fp, in_fp, sign);
 		if (state == 0) {
 			return -3;
@@ -663,7 +664,6 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 					state=onDash(out_fp,in_fp,2);
 				}
 				if (state == -3){//it is a list
-					ch ='\n';
 					isList = 1;
 				}
 			}
@@ -714,7 +714,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 					int count=1;
 					while (ch=getc(in_fp)){
 						if (ch == ' ') count++;
-						else if (ch == '*') {
+						else if (ch == '*' || ch == '-') {
 							if (count>=2){
 								if (count>=listspaces+4){
 									listspaces=count;
