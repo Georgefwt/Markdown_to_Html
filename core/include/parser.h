@@ -18,7 +18,7 @@ public:
     int onIorB(FILE *out_fp, FILE *in_fp);
     int onList(FILE *out_fp, FILE *in_fp,const int sign);
     int onOrdList(FILE *out_fp, FILE *in_fp,const int sign);
-    int onNumber(FILE *out_fp, FILE *in_fp, const int sign);
+    int onNumber(FILE *out_fp, FILE *in_fp, const int sign,char ch);
     int onAster(FILE *out_fp, FILE *in_fp, const int sign);
     int onDash(FILE *out_fp, FILE *in_fp, const int sign);
     int onCode(FILE *out_fp, FILE *in_fp);

@@ -395,16 +395,19 @@ int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
 	return 0;
 }
 
-int parser::onNumber(FILE *out_fp, FILE *in_fp, const int sign){
+int parser::onNumber(FILE *out_fp, FILE *in_fp, const int sign,char ch){
 	// if what it deal with is normal number
 	// it will return -1
 	// and if what it deal with is a ordlist
 	// it will return -3
 	//printf("onNumber!!!\n");
 	int state;
-	char ch;
     string content;
 	char tmpch=fgetc(in_fp);
+	if (tmpch == EOF) {
+		fprintf(out_fp, "%c",ch);
+		return -2;
+	}
 	if (tmpch == '.'){
 		char tmpch2=fgetc(in_fp);
 		if (tmpch2==' '){
@@ -522,11 +525,12 @@ int parser::onCode(FILE *out_fp, FILE *in_fp) {
 
 	while ((ch = fgetc(in_fp)) != EOF) {
         if (isCodeBlock!=1){
-            if (isNewLine && ch == '\n') {
+            if (isNewLine && (ch == '\n'||ch=='\r')) {
                 break;
             }
-            else if (!isNewLine && ch == '\n') {
+            else if (!isNewLine && (ch == '\n'||ch=='\r')) {
                 isNewLine = 1;
+				break;
             }
             else {
                 isNewLine = 0;
@@ -627,9 +631,8 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     while ((ch = fgetc(in_fp)) != EOF) {
 		printf("ch:%c isList:%d isNewLine:%d listspaces:%d \n",ch,isList,isNewLine,listspaces);
 		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' ' && isList) {
-			printf("on</ul>");
 			onList(out_fp, in_fp, 3);
-			//for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
+			for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
 			isList = 0;
 		}
 		if (isNewLine && !is_number(ch) && isOrderList) {
@@ -660,6 +663,12 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			}
 			else if (ch == '-') {
 				int state;
+				if (listspaces>0){
+					for (int k = 0; k < listspaces/4; k++){
+						fprintf(out_fp,"</ul>\n");
+					}
+					listspaces=0;
+				}
 				if (isList == 0){
 					state=onDash(out_fp,in_fp,1);
 				}
@@ -693,10 +702,13 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			else if (is_number(ch)){
 				int state;
 				if (isOrderList == 0) {
-					state = onNumber(out_fp, in_fp, 1);
+					state = onNumber(out_fp, in_fp, 1,ch);
 				}
 				else {
-					state = onNumber(out_fp, in_fp, 2);
+					state = onNumber(out_fp, in_fp, 2,ch);
+				}
+				if (state == -2) {
+					continue;
 				}
 				if (state == -3) { // if it is a list
 					ch ='\n';
@@ -764,6 +776,11 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			}
 			else {
 				fputc(ch, out_fp);
+			}
+		}
+		else if (ch == '~') {
+			if (isNewLine) {
+
 			}
 		}
 		else if (ch == '[') {
