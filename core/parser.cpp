@@ -289,22 +289,7 @@ int parser::onList(FILE *out_fp, FILE *in_fp,const int sign) {
 	}
 	if (sign == 1 || sign == 2) {
 		fprintf(out_fp, "<li>");
-		// ch = fgetc(in_fp);
-		// while (ch != '\n' && ch != EOF) {
-		// 	if (ch == '[') {
-		// 		onUrlstate = onUrl(out_fp, in_fp);
-		// 		if (onUrlstate == 2 || onUrlstate == 4) {
-		// 			// there is a '\n'
-		// 			break;
-		// 		}
-		// 	}
-		// 	else {
-		// 		fprintf(out_fp, "%c", ch);
-		// 	}
-		// 	ch = fgetc(in_fp);
-		// }
 		isNewLine = 0;
-		//fprintf(out_fp, "</li>\n");
 	}
 
 	if (sign == 3) {
@@ -365,7 +350,7 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
 	//printf("onordlist!!!\n");
 	//printf("sign:%d\n",sign);
-	int onUrlstate;
+	//int onUrlstate;
 	char ch;
 	if (sign == 1) {
 		fprintf(out_fp, "<ol>\n");
@@ -373,7 +358,7 @@ int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
 	if (sign == 1 || sign == 2) {
 		fprintf(out_fp, "<li>");
 		//while ((ch = fgetc(in_fp)) == ' ') {}
-		ch = fgetc(in_fp);
+		/*ch = fgetc(in_fp);
 		while (ch != '\n' && ch != EOF) {
 			if (ch == '[') {
 				onUrlstate = onUrl(out_fp, in_fp);
@@ -386,8 +371,9 @@ int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
 				fprintf(out_fp, "%c", ch);
 			}
 			ch = fgetc(in_fp);
-		}
-		fprintf(out_fp, "</li>\n");
+		}*/
+		isNewLine=0;
+		//fprintf(out_fp, "</li>\n");
 	}
 	if (sign == 3) {
 		fprintf(out_fp, "</ol>\n");
@@ -635,8 +621,9 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
 			isList = 0;
 		}
-		if (isNewLine && !is_number(ch) && isOrderList) {
-			onOrdList(out_fp, in_fp, 3);
+		if (isNewLine && !is_number(ch) && ch!=' ' && isOrderList) {
+			onOrdList(out_fp, in_fp, 3);//the end of the ordlist
+			for (int j = 0; j <listspaces/4 ; j++)onOrdList(out_fp, in_fp, 3);
 			isOrderList = 0;
 		}
 		if (isNewLine && ch != '\t' && isBlock) {
@@ -701,6 +688,12 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			}
 			else if (is_number(ch)){
 				int state;
+				if (listspaces>0){
+					for (int k = 0; k < listspaces/4; k++){
+						fprintf(out_fp,"</ol>\n");
+					}
+					listspaces=0;
+				}
 				if (isOrderList == 0) {
 					state = onNumber(out_fp, in_fp, 1,ch);
 				}
@@ -710,8 +703,8 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				if (state == -2) {
 					continue;
 				}
-				if (state == -3) { // if it is a list
-					ch ='\n';
+				if (state == -3) { // if it is a ordlist
+					//ch ='\n';
 					isOrderList = 1;
 				}
 			}
@@ -735,7 +728,6 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 									isList=1;
 								}
 								else isList=1;
-								printf("oooooooohhhhhhh\n");
 								int state;
 								if (isList == 0) {
 									state = onAster(out_fp, in_fp, 1);
@@ -757,7 +749,45 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 							goto flag;
 						}
 					}
-
+				}
+				else if (isOrderList){
+					int count=1;
+					while (ch=getc(in_fp)){
+						if (ch == ' ') count++;
+						else if (is_number(ch)) {
+							if (count>=2){
+								if (count>=listspaces+4){
+									listspaces=count;
+									isOrderList=0;
+								}
+								else if(count<=listspaces-4){
+									for (int j = 0; j < (listspaces-count)/4; j++){
+										fprintf(out_fp,"</ol>\n");
+									}
+									listspaces=count;
+									isOrderList=1;
+								}
+								else isOrderList=1;
+								int state;
+								if (isOrderList == 0) {
+									state = onNumber(out_fp, in_fp, 1,ch);
+								}
+								else {
+									state = onNumber(out_fp, in_fp, 2,ch);
+								}
+								if (state == -3) { // if it is a list
+									//ch ='\n';
+									isOrderList = 1;
+								}
+							}
+							break;
+						}
+						else{
+							for (int i = 0; i < count; i++) fputc(' ',out_fp);
+							isNewLine=0;
+							goto flag;
+						}
+					}
 				}
 			}
 			else if(ch == '\n'){
