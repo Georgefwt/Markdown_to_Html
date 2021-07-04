@@ -15,7 +15,7 @@ public:
     int onHr(FILE *out_fp, FILE *in_fp);
     int onImg(FILE *out_fp, FILE *in_fp);
     int onBold(FILE *out_fp, FILE *in_fp);
-    int onIorB(FILE *out_fp, FILE *in_fp);
+    int onIorB(FILE *out_fp, FILE *in_fp,int sign);
     int onList(FILE *out_fp, FILE *in_fp,const int sign);
     int onOrdList(FILE *out_fp, FILE *in_fp,const int sign);
     int onNumber(FILE *out_fp, FILE *in_fp, const int sign,char ch);

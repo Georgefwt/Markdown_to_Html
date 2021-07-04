@@ -238,7 +238,7 @@ int parser::onBold(FILE *out_fp, FILE *in_fp) {
 	return 0;
 }
 
-int parser::onIorB(FILE *out_fp, FILE *in_fp) {
+int parser::onIorB(FILE *out_fp, FILE *in_fp,int sign) {
 	// this function deal with italic or bold style
 	// if what it deals with is bold style
 	// it will return -1
@@ -277,7 +277,8 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 	}
 
 	if (ch != '*' && ch!='_') {
-		fprintf(out_fp, "*%s%c", content.c_str(), ch);
+		if (sign==1) fprintf(out_fp, "*%s%c", content.c_str(), ch);
+		else  fprintf(out_fp, "_%s%c", content.c_str(), ch);
 		return 10;
 	}
 
@@ -433,8 +434,14 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
     string content;
 
 	ch = fgetc(in_fp);
+	if (ch == EOF) {
+		if(sign<10) fprintf(out_fp,"*");
+		else fprintf(out_fp,"_");
+		return 0;
+	}
 	if (ch == ' ') { //situration:|* |,means is a list   or |- |
-		state = onList(out_fp, in_fp, sign);
+		if(sign<10) state = onList(out_fp, in_fp, sign);
+		else state = onList(out_fp, in_fp, sign-10);
 		if (state == 0) {
 			return -3;
 		}
@@ -453,7 +460,8 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 		}
 	}
 	else if (ch == '\n') {
-		fprintf(out_fp, "<p>*</p>\n");
+		if(sign<10) fprintf(out_fp, "<p>*</p>\n");
+		else fprintf(out_fp, "<p>_</p>\n");
 	}
     content.push_back(ch);
 	
@@ -465,7 +473,8 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	}
 
 	if (ch != '*' && ch!='_') {
-        fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
+        if(sign<10) fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
+		else  fprintf(out_fp, "<p>_%s</p>\n", content.c_str());
 		return 10;
 	}
 
@@ -696,10 +705,12 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 					listspaces=0;
 				}
 				if (isList == 0) {
-					state = onAster(out_fp, in_fp, 1);
+					if (ch == '*') state = onAster(out_fp, in_fp, 1);
+					else state = onAster(out_fp, in_fp, 11);
 				}
 				else {
-					state = onAster(out_fp, in_fp, 2);
+					if (ch == '*') state = onAster(out_fp, in_fp, 2);
+					else state = onAster(out_fp, in_fp, 12);
 				}
 				if (state == -3) { // if it is a list
 					//ch ='\n';
@@ -862,7 +873,8 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				fprintf(out_fp, "<p>%c", ch);
 			}
 			printf("onIorB!\n");
-			onIorB(out_fp, in_fp);
+			if (ch == '*') onIorB(out_fp, in_fp,1);
+			else onIorB(out_fp, in_fp,2);
 			// if ch is a asterisk and not in a new line,
 			// it can be italic style
 			// or it can be bold style
