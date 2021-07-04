@@ -240,7 +240,7 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 	// if what it deals with is italic style
 	// it will return -2
 
-	int i = 0, state, isSpace;
+	int state, isSpace;
 	char ch;
 	string content;
 	ch = fgetc(in_fp);
@@ -265,7 +265,7 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
         content.push_back(ch);
 	}
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == '*' || ch == '\n' || i> 999) {
+		if (ch == '*' || ch == '\n' ) {
 			break;
 		}
         content.push_back(ch);
@@ -415,6 +415,7 @@ int parser::onNumber(FILE *out_fp, FILE *in_fp, const int sign,char ch){
 	}
 	else{
 		fprintf(out_fp, "%c",ch);
+		if (tmpch=='*' || tmpch == '`' || tmpch == '~' || tmpch== '_') return tmpch;
 		fprintf(out_fp, "%c",tmpch);
 		isOrderList = 0;
 	}
@@ -458,12 +459,12 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	}
     content.push_back(ch);
 	
-	// while ((ch = fgetc(in_fp)) != EOF) {
-	// 	if (ch == '*' || ch == '\n') {
-	// 		break;
-	// 	}
-    //     content.push_back(ch);
-	// }
+	while ((ch = fgetc(in_fp)) != EOF) {
+		if (ch == '*' || ch == '\n') {
+			break;
+		}
+        content.push_back(ch);
+	}
 
 	if (ch != '*') {
         fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
@@ -616,7 +617,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     myfw.add_head(out_fp, CSS_PATH);
     //handle List Quote Header
     while ((ch = fgetc(in_fp)) != EOF) {
-		printf("ch:%c isList:%d isNewLine:%d listspaces:%d \n",ch,isList,isNewLine,listspaces);
+		printf("ch:%c isList:%d isNewLine:%d listspaces:%d isordlist:%d\n",ch,isList,isNewLine,listspaces,isOrderList);
 		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' ' && isList) {
 			onList(out_fp, in_fp, 3);
 			for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
@@ -702,6 +703,11 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				}
 				if (state == -2) {
 					continue;
+				}
+				if (state >= 10){
+					ch=state;
+					isNewLine=0;
+					goto flag;	
 				}
 				if (state == -3) { // if it is a ordlist
 					//ch ='\n';
