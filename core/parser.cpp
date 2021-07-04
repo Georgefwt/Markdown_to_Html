@@ -16,6 +16,7 @@ parser::parser()
     isBlock = 0;
 	isOrderList = 0;
 	listspaces=0;
+	isDel=0;
 }
 
 parser::~parser()
@@ -194,42 +195,46 @@ int parser::onBold(FILE *out_fp, FILE *in_fp) {
 	char ch;
     string content;
 	while ((ch = fgetc(in_fp)) == ' ') {}
-	if (ch == '*') {
-		ch = fgetc(in_fp);
-		if (ch == '*') {
-			fprintf(out_fp, "<strong></strong>");
-			return 1;
+	if (ch == '*' || ch == '_') {//|***|
+		while ((ch = fgetc(in_fp)) != EOF) {
+			if (ch == '*' || ch == '\n' || ch == '_') break;
+        	content.push_back(ch);
 		}
-		else {
-			fprintf(out_fp, "<i>*</i>");
-			return 2;
+		if (ch != '*' && ch!='_') {
+			fprintf(out_fp, "*%s%c", content.c_str(), ch);
+			return 10;
 		}
+		content.insert(0,"<i>");
+		content.append("</i>");
 	}
 	else if (ch == '\n') {
 		fputc(ch, out_fp);
 		return 3;
 	}
-    content.push_back(ch);
+    else {
+		content.push_back(ch);
+	}
+	printf("walalalal");
 	//content[i++] = ch;
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == '*' || ch == '\n' || i > 999) {
+		if (ch == '*' || ch == '\n' || ch == '_') {
 			break;
 		}
         content.push_back(ch);
 	}
 
-	if (ch != '*') {
+	if (ch != '*'&&ch !='_') {
 		fprintf(out_fp, "%s%c", content.c_str(), ch);
 		return 4;
 	}
 	
 	ch = fgetc(in_fp);
-	if (ch != '*') {
-		fprintf(out_fp, "<i>*%s</i>%c", content.c_str(), ch);
+	if (ch != '*'&&ch !='_') {
+		fprintf(out_fp, "<i>*%s</i>%c", content.c_str(), ch); // |**?*|
 		return 5;
 	}
 
-	fprintf(out_fp, "<strong>%s</strong>", content.c_str());
+	fprintf(out_fp, "<strong>%s</strong>",content.c_str());
 	return 0;
 }
 
@@ -244,7 +249,7 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
 	char ch;
 	string content;
 	ch = fgetc(in_fp);
-	if (ch == '*') {
+	if (ch == '*' || ch == '_') {
 		state = onBold(out_fp, in_fp);
 		if (state != 0) {
 			return state;
@@ -265,13 +270,13 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp) {
         content.push_back(ch);
 	}
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == '*' || ch == '\n' ) {
+		if (ch == '*' || ch =='_' || ch == '\n' ) {
 			break;
 		}
         content.push_back(ch);
 	}
 
-	if (ch != '*') {
+	if (ch != '*' && ch!='_') {
 		fprintf(out_fp, "*%s%c", content.c_str(), ch);
 		return 10;
 	}
@@ -333,13 +338,6 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 		fprintf(out_fp, "<p>-</p>\n");
 	}
     content.push_back(ch);
-	
-	// while ((ch = fgetc(in_fp)) != EOF) {
-	// 	if (ch == '-' || ch == '\n') {
-	// 		break;
-	// 	}
-    //     content.push_back(ch);
-	// }
 
 	if (ch != '-') {
         fprintf(out_fp, "<p>-%s</p>\n", content.c_str());//normal -
@@ -444,7 +442,7 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 			return state;
 		}
 	}
-	else if (ch == '*') {//situration:|**|,means bold
+	else if (ch == '*' || ch == '_') {//situration:|**|,means bold
 		fputc('\n', out_fp);
 		state = onBold(out_fp, in_fp);
 		if (state == 0) {
@@ -460,13 +458,13 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
     content.push_back(ch);
 	
 	while ((ch = fgetc(in_fp)) != EOF) {
-		if (ch == '*' || ch == '\n') {
+		if (ch == '*' || ch == '_'|| ch == '\n') {
 			break;
 		}
         content.push_back(ch);
 	}
 
-	if (ch != '*') {
+	if (ch != '*' && ch!='_') {
         fprintf(out_fp, "<p>*%s</p>\n", content.c_str());//normal *
 		return 10;
 	}
@@ -474,6 +472,27 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	fprintf(out_fp, "<p><i>%s</i>", content.c_str()); //italic
 	return -2;
 
+}
+
+int parser::onTilde(FILE *out_fp, FILE *in_fp){
+	int state;
+	char ch;
+    string content;
+
+	ch = fgetc(in_fp);
+	if (ch == '~') {//situration:|~~|,means del
+		if (isDel ==1){
+			fprintf(out_fp, "</del>");
+			isDel=0;
+		}
+		else{
+			fprintf(out_fp, "<del>");
+			isDel=1;
+		}
+		return 0;
+	}
+	fprintf(out_fp, "~%c",ch);
+	return 0;
 }
 
 void onSpecialChar(FILE *out_fp, const char ch) {
@@ -618,7 +637,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     //handle List Quote Header
     while ((ch = fgetc(in_fp)) != EOF) {
 		printf("ch:%c isList:%d isNewLine:%d listspaces:%d isordlist:%d\n",ch,isList,isNewLine,listspaces,isOrderList);
-		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' ' && isList) {
+		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' '&&ch!='_' && isList) {
 			onList(out_fp, in_fp, 3);
 			for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
 			isList = 0;
@@ -639,7 +658,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 
 		if (isNewLine &&
 			(ch == '>' ||  ch == '#' || ch == '-' || ch == '*' || ch == '\t'
-			|| ch=='\n'|| is_number(ch)|| ch == ' ')) {
+			|| ch=='\n'|| is_number(ch)|| ch == ' '|| ch == '_')) {
 			if (ch == '>') {
 				if (isQuote == 0) {
 					onQuote(out_fp, 1);
@@ -668,7 +687,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 					isList = 1;
 				}
 			}
-			else if (ch == '*') {
+			else if (ch == '*' || ch == '_') {
 				int state;
 				if (listspaces>0){
 					for (int k = 0; k < listspaces/4; k++){
@@ -720,7 +739,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 					int count=1;
 					while (ch=getc(in_fp)){
 						if (ch == ' ') count++;
-						else if (ch == '*' || ch == '-') {
+						else if (ch == '*' ||ch=='_' || ch == '-') {
 							if (count>=2){
 								if (count>=listspaces+4){
 									listspaces=count;
@@ -816,8 +835,9 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 		}
 		else if (ch == '~') {
 			if (isNewLine) {
-
+				fprintf(out_fp, "<p>");
 			}
+			onTilde(out_fp,in_fp);
 		}
 		else if (ch == '[') {
 			if (isNewLine) {
@@ -837,7 +857,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			}
 			onCode(out_fp, in_fp);
 		}
-		else if (ch == '*') {
+		else if (ch == '*' || ch == '_') {
 			if (isNewLine) {
 				fprintf(out_fp, "<p>%c", ch);
 			}
