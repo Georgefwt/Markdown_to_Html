@@ -4,7 +4,7 @@
 #include <string>
 #define MAX 1000
 using std::string;
-#define CSS_PATH "css/style.css"
+#define CSS_PATH "../core/css/style.css"
 
 parser::parser()
 {
@@ -214,7 +214,6 @@ int parser::onBold(FILE *out_fp, FILE *in_fp) {
     else {
 		content.push_back(ch);
 	}
-	printf("walalalal");
 	//content[i++] = ch;
 	while ((ch = fgetc(in_fp)) != EOF) {
 		if (ch == '*' || ch == '\n' || ch == '_') {
@@ -287,8 +286,7 @@ int parser::onIorB(FILE *out_fp, FILE *in_fp,int sign) {
 }
 
 int parser::onList(FILE *out_fp, FILE *in_fp,const int sign) {
-	printf("onList sign:%d isNewline:%d isList:%d\n",sign,isNewLine,isList);
-	//int onUrlstate;
+	//printf("onList sign:%d isNewline:%d isList:%d\n",sign,isNewLine,isList);
 	char ch;
 	if (sign == 1) {
 		fprintf(out_fp, "<ul>\n");
@@ -309,7 +307,6 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 	// it will return -1
 	// and if what it deal with is a list
 	// it will return -3
-	//printf("onDash!!!\n");
 	int state;
 	char ch;
     string content;
@@ -317,7 +314,6 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 	ch = fgetc(in_fp);
 	if (ch == ' ') { //situration:|- |,means is a list
 		state = onList(out_fp, in_fp, sign);
-		printf("qwerttt state:%d\n",state);
 		if (state == 0) {
 			return -3;
 		}
@@ -348,7 +344,6 @@ int parser::onDash(FILE *out_fp, FILE *in_fp, const int sign){
 }
 
 int parser::onOrdList(FILE *out_fp, FILE *in_fp,const int sign){
-	//printf("onordlist!!!\n");
 	//printf("sign:%d\n",sign);
 	//int onUrlstate;
 	char ch;
@@ -428,7 +423,7 @@ int parser::onAster(FILE *out_fp, FILE *in_fp, const int sign) {
 	// it will return -2
 	// and if what it deal with is a list
 	// it will return -3
-	printf("omAster sign:%d\n",sign);
+	//printf("omAster sign:%d\n",sign);
 	int state;
 	char ch;
     string content;
@@ -645,7 +640,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
     myfw.add_head(out_fp, CSS_PATH);
     //handle List Quote Header
     while ((ch = fgetc(in_fp)) != EOF) {
-		printf("ch:%c isList:%d isNewLine:%d listspaces:%d isordlist:%d\n",ch,isList,isNewLine,listspaces,isOrderList);
+		//printf("ch:%c isList:%d isNewLine:%d listspaces:%d isordlist:%d\n",ch,isList,isNewLine,listspaces,isOrderList);
 		flag:if (isNewLine && ch != '*' &&ch !='-'&&ch!=' '&&ch!='_' && isList) {
 			onList(out_fp, in_fp, 3);
 			for (int j = 0; j <listspaces/4 ; j++)onList(out_fp, in_fp, 3);
@@ -745,7 +740,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 				}
 			}
 			else if (ch == ' '){
-				printf("spaceeeee isList:%d\n",isList);
+				//printf("spaceeeee isList:%d\n",isList);
 				if (isList){
 					int count=1;
 					while (ch=getc(in_fp)){
@@ -872,7 +867,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			if (isNewLine) {
 				fprintf(out_fp, "<p>%c", ch);
 			}
-			printf("onIorB!\n");
+			//printf("onIorB!\n");
 			if (ch == '*') onIorB(out_fp, in_fp,1);
 			else onIorB(out_fp, in_fp,2);
 			// if ch is a asterisk and not in a new line,
@@ -883,7 +878,6 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
         else if (ch != '\n') {
 			if (isNewLine && !isQuote) {
 				fprintf(out_fp, "%c", ch);
-				printf("%c", ch);
 			}
 			else {
             	fputc(ch, out_fp);
@@ -900,7 +894,7 @@ void parser::mdparser(FILE *out_fp, FILE *in_fp,fwriter& myfw){
 			isNewLine = 1;
 			isHr = 0;
         }
-		printf("END:ch:%c isList:%d isNewLine:%d \n\n",ch,isList,isNewLine);
+		//printf("END:ch:%c isList:%d isNewLine:%d \n\n",ch,isList,isNewLine);
 	}
 	
 	myfw.add_foot(out_fp);
